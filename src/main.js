@@ -141,17 +141,33 @@ const initMobileMenu = () => {
   }
 };
 
-const router = async () => {
+const getBasePath = () => {
   const path = window.location.pathname;
+  if (path.startsWith('/lipikawebsite')) return '/lipikawebsite';
+  return '';
+};
+
+const router = async () => {
+  const base = getBasePath();
+  let path = window.location.pathname;
+
+  // Normalize path by removing base
+  if (base && path.startsWith(base)) {
+    path = path.replace(base, '') || '/';
+  }
+
   const renderPage = routes[path] || routes["/"];
   const appRoot = document.getElementById('app-root');
   if (appRoot) {
     appRoot.innerHTML = renderPage();
     document.title = `${path.substring(1).toUpperCase() || 'HOME'} | TEACHER.EDU`;
   }
+
   document.querySelectorAll('.nav-link').forEach(link => {
-    link.classList.toggle('active', link.getAttribute('href') === path);
+    const href = link.getAttribute('href');
+    link.classList.toggle('active', href === path || (href === '/' && path === '/'));
   });
+
   if (path === '/academic-program') initAcademicApp();
   initMobileMenu();
   window.scrollTo(0, 0);
@@ -159,9 +175,16 @@ const router = async () => {
 
 window.onscroll = () => document.getElementById('header')?.classList.toggle('scrolled', window.scrollY > 50);
 window.onpopstate = router;
+
 document.body.onclick = e => {
   const link = e.target.closest("[data-link]");
-  if (link) { e.preventDefault(); history.pushState(null, null, link.getAttribute('href')); router(); }
+  if (link) {
+    e.preventDefault();
+    const targetPath = link.getAttribute('href');
+    const base = getBasePath();
+    history.pushState(null, null, base + targetPath);
+    router();
+  }
 };
 
 function initAcademicApp() {
